@@ -312,7 +312,11 @@ body{font-family:var(--fb);background:var(--bg0);color:var(--t0);min-height:100v
     <div class="id-grid">
       <div class="fgrp"><label class="flbl">Fecha</label><input type="date" class="finp" id="f-fecha"></div>
       <div class="fgrp"><label class="flbl">Nombre del Operador</label><input type="text" class="finp" id="f-oper" placeholder="Nombre completo"></div>
-      <div class="fgrp"><label class="flbl">N° Montacargas</label><input type="text" class="finp" id="f-num" placeholder="Ej: MC-01"></div>
+      <div class="fgrp"><label class="flbl">N° Montacargas</label>
+<select class="finp" id="f-num">
+  <option value="">— Seleccionar —</option>
+  <option value="MONT-ELECT">MONT-ELECT</option>
+</select></div>
       <div class="fgrp"><label class="flbl">Horometro / Horas</label><input type="number" class="finp" id="f-horo" placeholder="Horas en pantalla"></div>
       <div class="fgrp"><label class="flbl">% Batería al inicio</label><input type="number" class="finp" id="f-bat" placeholder="%" min="0" max="100"></div>
     </div>
@@ -625,6 +629,13 @@ async function sbDeleteInspeccion(id){
   }catch(e){showToast('Error al eliminar','err');}
 }
 
+function confirmarEliminar(id){
+  const r=S.historial.find(x=>x.id===id);
+  if(!r)return;
+  const msg=`¿Eliminar la inspección de ${r.operador} del ${fmtDate(r.fecha)}?\n\nEsta acción no se puede deshacer.`;
+  if(confirm(msg)) sbDeleteInspeccion(id);
+}
+
 async function sbLoadRefPhotos(){
   try{
     const {data,error}=await supa.from('fotos_referencia').select('*').order('created_at',{ascending:true});
@@ -891,7 +902,7 @@ function renderHistorial(){
   body.innerHTML=data.map(r=>{
     const dmg=r.damage===true?`<span class="badge b-fail">⚠ DAÑO</span>`:r.damage===false?`<span class="badge b-ok">✔ OK</span>`:'—';
     const f=(r.dmgPhotos?.length||0);
-    return `<tr><td>${fmtDate(r.fecha)}</td><td><strong>${r.operador}</strong></td><td>${r.numMontacargas}</td><td>${r.horometro}</td><td>${r.bateria}</td><td>${estadoBadge(r.estado)}</td><td>${dmg}</td><td>${f>0?`<span style="color:var(--blue);font-weight:600">📷 ${f}</span>`:'—'}</td><td><button class="det-btn" onclick="openDetail(${r.id})">👁 Ver</button><button class="pdf-btn" onclick="exportPDF(${r.id})">📄 PDF</button></td></tr>`;
+    return `<tr><td>${fmtDate(r.fecha)}</td><td><strong>${r.operador}</strong></td><td>${r.numMontacargas}</td><td>${r.horometro}</td><td>${r.bateria}</td><td>${estadoBadge(r.estado)}</td><td>${dmg}</td><td>${f>0?`<span style="color:var(--blue);font-weight:600">📷 ${f}</span>`:'—'}</td><td style="white-space:nowrap"><button class="det-btn" onclick="openDetail(${r.id})">👁 Ver</button><button class="pdf-btn" onclick="exportPDF(${r.id})" style="margin:0 3px">📄 PDF</button><button class="btn-d" onclick="confirmarEliminar(${r.id})">🗑 Eliminar</button></td></tr>`;
   }).join('');
 }
 
