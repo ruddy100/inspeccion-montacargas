@@ -413,7 +413,7 @@ body{font-family:var(--fb);background:var(--bg0);color:var(--t0);min-height:100v
   <div class="tbl-wrap">
     <table class="dtbl">
       <thead><tr>
-        <th>Fecha</th><th>Operador</th><th>N° Equipo</th><th>Horometro</th><th>Batería</th><th>Estado</th><th>Daño/Choque</th><th>Fotos</th><th>Acciones</th>
+        <th>Fecha y Hora</th><th>Operador</th><th>N° Equipo</th><th>Horometro</th><th>Batería</th><th>Estado</th><th>Daño/Choque</th><th>Fotos</th><th>Acciones</th>
       </tr></thead>
       <tbody id="hist-body"></tbody>
     </table>
@@ -902,7 +902,7 @@ function renderHistorial(){
   body.innerHTML=data.map(r=>{
     const dmg=r.damage===true?`<span class="badge b-fail">⚠ DAÑO</span>`:r.damage===false?`<span class="badge b-ok">✔ OK</span>`:'—';
     const f=(r.dmgPhotos?.length||0);
-    return `<tr><td>${fmtDate(r.fecha)}</td><td><strong>${r.operador}</strong></td><td>${r.numMontacargas}</td><td>${r.horometro}</td><td>${r.bateria}</td><td>${estadoBadge(r.estado)}</td><td>${dmg}</td><td>${f>0?`<span style="color:var(--blue);font-weight:600">📷 ${f}</span>`:'—'}</td><td style="white-space:nowrap"><button class="det-btn" onclick="openDetail(${r.id})">👁 Ver</button><button class="pdf-btn" onclick="exportPDF(${r.id})" style="margin:0 3px">📄 PDF</button><button class="btn-d" onclick="confirmarEliminar(${r.id})">🗑 Eliminar</button></td></tr>`;
+    return `<tr><td>${fmtDateTime(r.fecha,r.ts)}</td><td><strong>${r.operador}</strong></td><td>${r.numMontacargas}</td><td>${r.horometro}</td><td>${r.bateria}</td><td>${estadoBadge(r.estado)}</td><td>${dmg}</td><td>${f>0?`<span style="color:var(--blue);font-weight:600">📷 ${f}</span>`:'—'}</td><td style="white-space:nowrap"><button class="det-btn" onclick="openDetail(${r.id})">👁 Ver</button><button class="pdf-btn" onclick="exportPDF(${r.id})" style="margin:0 3px">📄 PDF</button><button class="btn-d" onclick="confirmarEliminar(${r.id})">🗑 Eliminar</button></td></tr>`;
   }).join('');
 }
 
@@ -910,6 +910,18 @@ function estadoBadge(e){
   return{ok:`<span class="badge b-ok">✔ Correcto</span>`,fail:`<span class="badge b-fail">✖ Falla</span>`,damage:`<span class="badge b-fail">⚠ Daños</span>`}[e]||`<span class="badge">${e}</span>`;
 }
 function fmtDate(s){if(!s)return'—';const p=s.split('-');return`${p[2]}/${p[1]}/${p[0]}`;}
+function fmtDateTime(fecha,ts){
+  const d=fmtDate(fecha);
+  if(!ts)return d;
+  // ts is ISO string like "2026-04-13T21:30:00.000Z"
+  // Convert UTC to Bolivia time (UTC-4)
+  try{
+    const dt=new Date(ts);
+    const h=String(dt.getUTCHours()-4<0?dt.getUTCHours()+20:dt.getUTCHours()-4).padStart(2,'0');
+    const m=String(dt.getUTCMinutes()).padStart(2,'0');
+    return `${d} ${h}:${m}`;
+  }catch(e){return d;}
+}
 async function clearHistory(){
   if(!confirm('Eliminar TODO el historial de la nube? Esta accion no se puede deshacer.'))return;
   try{
