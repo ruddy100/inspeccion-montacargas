@@ -99,7 +99,7 @@ body{font-family:var(--fb);background:var(--bg0);color:var(--t0);min-height:100v
 .finp::placeholder{color:var(--t3)}
 
 .firma-wrap{position:relative}
-.firma-canvas{width:100%;height:66px;border:1px solid var(--bd1);border-radius:5px;background:var(--bg3);cursor:crosshair;touch-action:none;display:block}
+.firma-canvas{width:100%;height:110px;border:1px solid var(--bd1);border-radius:5px;background:var(--bg3);cursor:crosshair;touch-action:none;display:block}
 .firma-clear{position:absolute;top:3px;right:6px;background:none;border:none;font-size:9.5px;color:var(--t2);cursor:pointer;font-family:var(--fh);font-weight:700}
 .firma-clear:hover{color:var(--red)}
 
@@ -387,7 +387,7 @@ body{font-family:var(--fb);background:var(--bg0);color:var(--t0);min-height:100v
     <div style="padding:14px 16px">
       <div style="font-size:11px;color:var(--t2);margin-bottom:8px">Firme en el recuadro para confirmar que la inspección fue realizada conforme al procedimiento.</div>
       <div class="firma-wrap">
-        <canvas class="firma-canvas" id="firma-canvas" width="800" height="100"></canvas>
+        <canvas class="firma-canvas" id="firma-canvas" width="800" height="180"></canvas>
         <button class="firma-clear" onclick="clearFirma()">✕ Limpiar firma</button>
       </div>
     </div>
@@ -845,7 +845,7 @@ function initFirma(){
   canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!firmaDrawing)return;const p=pos(e);firmaCtx.lineTo(p.x,p.y);firmaCtx.stroke();firmaHasMark=true;},{passive:false});
   canvas.addEventListener('touchend',()=>firmaDrawing=false);
 }
-function clearFirma(){firmaCtx.clearRect(0,0,800,100);firmaHasMark=false;}
+function clearFirma(){firmaCtx.clearRect(0,0,800,180);firmaHasMark=false;}
 function getFirmaDataUrl(){return firmaHasMark?document.getElementById('firma-canvas').toDataURL('image/png'):'';}
 
 // ── SUBMIT ──
@@ -1046,39 +1046,67 @@ function exportPDF(id){
   sf(navy);doc.rect(0,0,W,32,'F');
   sf([0,130,70]);doc.rect(0,30,W,3,'F');
   // Real logo image
-  try{doc.addImage(LOGO_B64,'JPEG',M,3,48,24,'logo','FAST');}catch(e){
+  // GEO header background
+  sf([0,130,70]);doc.rect(0,0,W,2,'F');
+  sf(cwhite);doc.rect(0,2,W,36,'F');
+  sf([0,130,70]);doc.rect(0,36,W,1.5,'F');
+  try{doc.addImage(LOGO_B64,'JPEG',M,5,40,28,'logo','FAST');}catch(e){
     st(cwhite);ss(15);doc.setFont('helvetica','bold');doc.text('BATEBOL S.A.',M,18);
   }
   // Title block
-  st(cwhite);ss(13);doc.setFont('helvetica','bold');doc.text('REGISTRO DE INSPECCION DIARIA',M+52,11);
-  ss(8);doc.setFont('helvetica','normal');doc.text('MONTACARGAS ELECTRICO - Sistema de Gestion de Seguridad Industrial',M+52,17);
-  ss(6.5);doc.text('Documento Controlado  |  Ref: SGS-FOR-MC-01  |  Bolivia Industrias de Baterias',M+52,23);
-  // Folio box
-  sf([255,255,255]);doc.roundedRect(W-M-40,3,40,24,2,2,'F');
-  st(navy);ss(6);doc.setFont('helvetica','bold');doc.text('N° REGISTRO',W-M-20,9,{align:'center'});
-  ss(11);doc.text(`INS-${String(r.id).slice(-6)}`,W-M-20,16,{align:'center'});
-  ss(6);doc.setFont('helvetica','normal');st(cgray);doc.text(new Date().toLocaleDateString('es-BO'),W-M-20,23,{align:'center'});
-  y=40;
+  st([50,50,50]);ss(7.5);doc.setFont('helvetica','normal');doc.text('MODULO',W/2,9,{align:'center'});
+  st(navy);ss(13);doc.setFont('helvetica','bold');doc.text('INSPECCION DIARIA MONTACARGAS',W/2,17,{align:'center'});
+  st([50,50,50]);ss(8);doc.setFont('helvetica','normal');doc.text('Registro de Gestion',W/2,24,{align:'center'});
 
-  // ── IDENTIFICACIÓN ──
-  sf(clight);sd(cborder);doc.roundedRect(M,y,cw,36,2,2,'FD');
-  st(navy);ss(8);doc.setFont('helvetica','bold');doc.text('DATOS DE IDENTIFICACION',M+3,y+6);
-  sd(cborder);doc.line(M+1,y+8,M+cw-1,y+8);
-  const ifields=[['Fecha de Inspeccion',fmtDate(r.fecha)],['Nombre del Operador',pd(r.operador)],['N de Montacargas',pd(r.numMontacargas)],['Horometro',pd(r.horometro)],['Bateria al Inicio',pd(r.bateria)],['Hora de Registro',r.ts?r.ts.slice(11,16)+' (UTC-4)':'--']];
-  const cw3=cw/3;
+  // Folio box
+  sf([245,248,255]);doc.roundedRect(W-M-42,4,42,28,2,2,'F');
+  sd([200,210,235]);doc.roundedRect(W-M-42,4,42,28,2,2,'S');
+  st(navy);ss(6);doc.setFont('helvetica','bold');doc.text('N° REGISTRO',W-M-20,9,{align:'center'});
+  st(navy);ss(7.5);doc.setFont('helvetica','normal');doc.text(fmtDate(r.fecha),W-M-21,17,{align:'center'});
+  st([50,50,50]);ss(6);doc.text('Generado: '+new Date().toLocaleDateString('es-BO'),W-M-21,24,{align:'center'});
+  ss(6);doc.setFont('helvetica','normal');st(cgray);
+  doc.text('Folio: INS-'+String(r.id).slice(-6),W-M,31,{align:'right'});
+  y=45;
+
+  // ── IDENTIFICACION — GEO KPI style ──
+  // Section label
+  st(navy);ss(7.5);doc.setFont('helvetica','bold');
+  doc.text('DATOS DE LA INSPECCION',M,y+5);
+  sd([200,210,235]);doc.line(M,y+7,M+cw,y+7);
+  y+=12;
+  // KPI boxes: 3 per row x 2 rows
+  const ifields=[
+    ['Fecha','DATE',fmtDate(r.fecha)],
+    ['Operador','USER',pd(r.operador)],
+    ['N° Montacargas','UNIT',pd(r.numMontacargas)],
+    ['Horometro','HOUR',pd(r.horometro)+' h'],
+    ['Bateria Inicio','BATT',pd(r.bateria)],
+    ['Hora Registro','TIME',r.ts?r.ts.slice(11,16):'--'],
+  ];
+  const kw=(cw-10)/3, kh=18;
   ifields.forEach((f,i)=>{
-    const cx=M+3+(i%3)*cw3,cy=y+14+(Math.floor(i/3)*11);
-    st(cgray);ss(6);doc.setFont('helvetica','normal');doc.text(f[0].toUpperCase(),cx,cy);
-    st(cblack);ss(8.5);doc.setFont('helvetica','bold');doc.text(pd(String(f[1]||'-')).slice(0,24),cx,cy+5);
+    const kx=M+(i%3)*(kw+5), ky=y+Math.floor(i/3)*(kh+4);
+    sf([245,248,255]);sd([200,210,235]);doc.roundedRect(kx,ky,kw,kh,2,2,'FD');
+    st(cgray);ss(5.5);doc.setFont('helvetica','normal');doc.text(f[0].toUpperCase(),kx+3,ky+5.5);
+    st(navy);ss(9);doc.setFont('helvetica','bold');doc.text(pd(String(f[2]||'--')).slice(0,22),kx+3,ky+13.5);
   });
-  y+=42;
+  y+=2*(kh+4)+6;
 
   // ── ESTADO GLOBAL ──
   const estColor={ok:cok,warn:cwarn,fail:cfail,damage:cfail}[r.estado]||cgray;
   const estText={ok:'CONFORME - SIN NOVEDADES',warn:'CON OBSERVACIONES',fail:'NO CONFORME - CON FALLAS',damage:'NO CONFORME - DANO DETECTADO'}[r.estado]||r.estado.toUpperCase();
-  sf(estColor);doc.roundedRect(M,y,cw,10,2,2,'F');
-  st(cwhite);ss(8.5);doc.setFont('helvetica','bold');doc.text(`RESULTADO: ${estText}`,M+cw/2,y+6.5,{align:'center'});
-  y+=14;
+  // GEO-style: 4 colored summary KPI boxes
+  const sumKpis=[estText,pd(r.numMontacargas),pd(r.horometro)+' h',pd(r.bateria)];
+  const sumColors=[estColor,navy,[0,112,160],[0,130,70]];
+  const sumLabels=['RESULTADO','MONTACARGAS','HOROMETRO','BATERIA'];
+  const skw=(cw-15)/4;
+  sumKpis.forEach(function(v,i){
+    const sx=M+i*(skw+5);
+    sf(sumColors[i]);doc.roundedRect(sx,y,skw,16,2,2,'F');
+    st(cwhite);ss(5.5);doc.setFont('helvetica','normal');doc.text(sumLabels[i],sx+skw/2,y+5.5,{align:'center'});
+    ss(8);doc.setFont('helvetica','bold');doc.text(v.slice(0,16),sx+skw/2,y+12.5,{align:'center'});
+  });
+  y+=22;
 
   // ── SECCIONES ──
   const aIcon={ok:'OK',warn:'OBS',fail:'FALLA',na:'N/A'};
@@ -1114,9 +1142,10 @@ function exportPDF(id){
 
   // ── DAÑOS ──
   chk(35);
-  sf(cfail);doc.rect(M,y,cw,7,'F');
-  st(cwhite);ss(7.5);doc.setFont('helvetica','bold');doc.text('7. INSPECCION DE DANOS Y CHOQUES',M+3,y+5);
-  y+=9;
+  sf([26,58,110]);doc.rect(M,y,cw,8,'F');
+  sf(cfail);doc.rect(M,y,3,8,'F');  // red left accent
+  st(cwhite);ss(7.5);doc.setFont('helvetica','bold');doc.text('7. INSPECCION DE DANOS Y CHOQUES',M+6,y+5.5);
+  y+=10;
   const dcolor=r.damage?cfail:cok;
   const dtxt=r.damage?'! SE REPORTO DANO O CHOQUE NUEVO EN ESTE TURNO':'OK  SIN DANOS NI CHOQUES REPORTADOS';
   sf(r.damage?[255,238,240]:[238,252,242]);sd(dcolor);doc.roundedRect(M,y,cw,10,2,2,'FD');
@@ -1171,7 +1200,9 @@ function exportPDF(id){
   const total=doc.getNumberOfPages();
   for(let p=1;p<=total;p++){
     doc.setPage(p);
-    sf(navy);doc.rect(0,287,W,10,'F');
+    sf([0,130,70]);doc.rect(0,284,W,1.5,'F');
+    sf(cwhite);doc.rect(0,285.5,W,11.5,'F');
+    sd([200,210,235]);doc.line(M,285.5,W-M,285.5);
     st(cwhite);ss(6);doc.setFont('helvetica','normal');
     doc.text('BATEBOL S.A.  |  SGS-FOR-MC-01  |  Registro de Inspeccion Diaria - Montacargas Electrico  |  Documento de uso interno',M,292);
     doc.text(`Pág. ${p} / ${total}`,W-M,292,{align:'right'});
