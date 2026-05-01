@@ -561,16 +561,17 @@ function loadState(){
 
 // ── SUPABASE OPERATIONS ──
 async function sbLoadHistorial(){
-  // Show loading state in historial badge
   const badge=document.getElementById('badge-hist');
   if(badge)badge.textContent='...';
   try{
     if(typeof supabase==='undefined'||!supa){
       throw new Error('Supabase SDK no cargado. Verifica conexion a internet.');
     }
-    const res=await supa.from('inspecciones').select('*').order('ts',{ascending:false});
+    // Exclude heavy photo/firma columns from list query to avoid timeout
+    const res=await supa.from('inspecciones')
+      .select('id,fecha,operador,num_montacargas,horometro,bateria,answers,fail_obs,damage,dmg_desc,obs,estado,ts')
+      .order('ts',{ascending:false});
     if(res.error){
-      // Show specific Supabase error
       const msg=res.error.message||res.error.code||JSON.stringify(res.error);
       throw new Error('DB: '+msg);
     }
@@ -586,8 +587,8 @@ async function sbLoadHistorial(){
       failObs:r.fail_obs||{},
       damage:r.damage,
       dmgDesc:r.dmg_desc||'',
-      dmgPhotos:Array.isArray(r.dmg_photos)?r.dmg_photos:[],
-      firma:r.firma||'',
+      dmgPhotos:[], // loaded on demand when opening detail
+      firma:'',     // loaded on demand when opening detail
       obs:r.obs||'',
       estado:r.estado||'ok',
       ts:r.ts
@@ -599,6 +600,26 @@ async function sbLoadHistorial(){
     console.error('Error cargando historial:',e);
     if(badge)badge.textContent='!';
     showToast('Error: '+(e&&e.message?e.message:String(e)),'err');
+  }
+}
+
+// Load full detail (including photos) for a single record on demand
+async function sbLoadDetail(id){
+  try{
+    const res=await supa.from('inspecciones')
+      .select('id,dmg_photos,firma')
+      .eq('id',id)
+      .single();
+    if(res.error)throw res.error;
+    const r=S.historial.find(x=>x.id===id);
+    if(r&&res.data){
+      r.dmgPhotos=Array.isArray(res.data.dmg_photos)?res.data.dmg_photos:[];
+      r.firma=res.data.firma||'';
+    }
+    return r;
+  }catch(e){
+    console.error('Error cargando detalle:',e);
+    return S.historial.find(x=>x.id===id);
   }
 }
 
@@ -932,8 +953,9 @@ async function clearHistory(){
 }
 
 // ── DETAIL MODAL ──
-function openDetail(id){
-  const r=S.historial.find(x=>x.id===id);if(!r)return;
+async function openDetail(id){
+  const r=await sbLoadDetail(id);
+  if(!r)return;
   document.getElementById('modal-title').textContent=`Inspección — ${r.operador} — ${fmtDate(r.fecha)}`;
   let html=`<div class="modal-section"><div class="modal-sec-title">Identificación</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:12px">
@@ -1028,8 +1050,9 @@ function pd(s){
 }
 
 // ── EXPORT PDF ──
-function exportPDF(id){
-  const r=S.historial.find(x=>x.id===id);if(!r)return;
+async function exportPDF(id){
+  const r=await sbLoadDetail(id);
+  if(!r)return;
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const W=210,M=13,cw=W-M*2;
